@@ -1,5 +1,6 @@
 import type { TransactionType } from "../constant/global";
 import type { FilterState } from "../components/transaction-filter/Filter";
+import type { DateRange } from "../constant/data";
 
 // Map transaction types from API to filter types
 const mapTransactionType = (transaction: TransactionType): string => {
@@ -66,6 +67,48 @@ const getDateRange = (range: string): { start: Date; end: Date } => {
             };
     }
 };
+
+ // Function to calculate date range based on selection
+    export const calculateDateRange = (range: DateRange): { start?: Date; end?: Date } => {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        switch (range) {
+            case 'today':
+                return {
+                    start: today,
+                    end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+                };
+            case 'last7days':
+                return {
+                    start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+                    end: today
+                };
+            case 'thisMonth':
+                return {
+                    start: new Date(now.getFullYear(), now.getMonth(), 1),
+                    end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+                };
+            case 'last3months':
+                return {
+                    start: new Date(now.getFullYear(), now.getMonth() - 3, 1),
+                    end: today
+                };
+            case 'thisYear':
+                return {
+                    start: new Date(now.getFullYear(), 0, 1),
+                    end: new Date(now.getFullYear(), 11, 31)
+                };
+            case 'lastYear':
+                return {
+                    start: new Date(now.getFullYear() - 1, 0, 1),
+                    end: new Date(now.getFullYear() - 1, 11, 31)
+                };
+            case 'allTime':
+            default:
+                return { start: undefined, end: undefined };
+        }
+    };
 
 export const filterTransactions = (transactions: TransactionType[], filters: FilterState): TransactionType[] => {
     return transactions.filter(transaction => {

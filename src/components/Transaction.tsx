@@ -103,6 +103,8 @@ const Transaction: React.FC<{ transactions: TransactionType[] }> = ({ transactio
                 onClose={() => setOpen(false)} 
                 onApplyFilter={handleApplyFilter}
                 currentFilters={currentFilters}
+                transactions={transactions}
+                setFilteredTransactions={setFilteredTransactions}
             />
 
         </div>

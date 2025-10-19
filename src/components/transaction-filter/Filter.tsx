@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, type Dispatch, type SetStateAction } from 'react'
 import { LuX } from 'react-icons/lu'
 import { CalendarDropdown } from './Calender'
 import { MultiSelectPopover } from '../MultiSelectPopover'
 import { dateRangeOptions, TX_STATUS, TX_TYPES, type DateRange } from '../../constant/data'
+import { calculateDateRange, filterTransactions } from '../../lib/filterUtils'
+import type { TransactionType } from '../../constant/global'
 export interface FilterState {
     dateRange: DateRange
     startDate?: Date
@@ -15,31 +17,59 @@ interface FilterProps {
     onClose: () => void
     onApplyFilter: (filters: FilterState) => void
     currentFilters: FilterState
+    transactions: TransactionType[]
+    setFilteredTransactions: Dispatch<SetStateAction<TransactionType[]>>
 }
 
-const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFilters }) => {
+const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFilters, transactions, setFilteredTransactions }) => {
 
-    const [filters, setFilters] = useState<FilterState>(currentFilters)
+    const [filters, setFilters] = useState<FilterState>(currentFilters);
 
     const handleDateRangeSelect = (range: DateRange) => {
-        setFilters(prev => ({ ...prev, dateRange: range }))
+        const { start, end } = calculateDateRange(range);
+        setFilters(prev => ({ 
+            ...prev, 
+            dateRange: range,
+            startDate: start,
+            endDate: end
+        }));
     }
 
     const handleTypeSelection = (types: string[]) => {
         setFilters(prev => ({ ...prev, transactionTypes: types }))
-    }
-
+    }    
     const handleStatusSelection = (status: string[]) => {
         setFilters(prev => ({ ...prev, transactionStatus: status }))
+    }
+
+    const handleStartDateChange = (date: Date | undefined) => {
+        setFilters(prev => ({ 
+            ...prev, 
+            startDate: date,
+            dateRange: 'custom' 
+        }));
+    }
+
+    const handleEndDateChange = (date: Date | undefined) => {
+        setFilters(prev => ({ 
+            ...prev, 
+            endDate: date,
+            dateRange: 'custom'        
+        }));
     }
 
     const handleClear = () => {
         const clearedFilters: FilterState = {
             dateRange: 'allTime',
+            startDate: undefined,
+            endDate: undefined,
             transactionTypes: [],
             transactionStatus: []
         }
         setFilters(clearedFilters)
+        const filtered = filterTransactions(transactions, clearedFilters);
+        setFilteredTransactions(filtered);
+        onClose();
     }
 
     const handleApply = () => {
@@ -48,7 +78,7 @@ const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFi
     }
 
     const hasFilters = filters.transactionTypes.length > 0 || filters.transactionStatus.length > 0 || filters.dateRange !== 'allTime'
-    console.log('Current Filters in Filter Component:', filters);
+    
     return (
         <div aria-hidden={!open} className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}>
             <div
@@ -79,14 +109,20 @@ const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFi
                             {option.label}
                         </button>
                     ))}
-                </div>
-
-                <div className="space-y-4">
+                </div>                <div className="space-y-4">
                     <div>
                         <div className="!leading-[160%] tracking-[-0.4px] font-semibold text-dark mb-4">Date Range</div>
                         <div className="flex gap-3">
-                            <CalendarDropdown />
-                            <CalendarDropdown />
+                            <CalendarDropdown 
+                                placeholder="Start Date"
+                                value={filters.startDate}
+                                onChange={handleStartDateChange}
+                            />
+                            <CalendarDropdown 
+                                placeholder="End Date"
+                                value={filters.endDate}
+                                onChange={handleEndDateChange}
+                            />
                         </div>
                     </div>
 
