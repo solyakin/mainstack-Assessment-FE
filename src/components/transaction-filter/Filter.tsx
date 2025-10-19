@@ -1,8 +1,7 @@
+import React, { useState } from 'react'
 import { LuX } from 'react-icons/lu'
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
-import React from 'react'
 import { CalendarDropdown } from './Calender'
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover'
+import { MultiSelectPopover } from '../MultiSelectPopover'
 
 const TX_TYPES = [
     'Store Transactions',
@@ -12,44 +11,64 @@ const TX_TYPES = [
     'Cashbacks',
     'Refer & Earn',
 ]
-
 const TX_STATUS = ['Successful', 'Pending', 'Failed']
+type DateRange = 'today' | 'last7days' | 'thisMonth' | 'last3months' | 'thisYear' | 'lastYear' | 'allTime' | 'custom'
 
-function MultiSelectPopover({ options, placeholder }: MultiProps) {
-    const [open, setOpen] = React.useState(false)
-    const [selected, setSelected] = React.useState<string[]>(options.slice(0, 3))
-
-    function toggle(option: string) {
-        setSelected((prev) => (prev.includes(option) ? prev.filter((p) => p !== option) : [...prev, option]))
-    }
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <button className="w-full p-3 rounded-lg text-left flex items-center justify-between border bg-grayOff focus:ring-2">
-                    <span className="truncate text-sm">{selected.length ? selected.join(', ') : placeholder}</span>
-                    {open ?
-                        <MdKeyboardArrowUp className="ml-2" />
-                        :
-                        <MdKeyboardArrowDown className="ml-2" />
-                    }
-                </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-4">
-                <div className="space-y-2">
-                    {options.map((opt) => (
-                        <label key={opt} className="flex items-center gap-3 p-2 rounded-md hover:bg-grayOff cursor-pointer">
-                            <input type="checkbox" className='h-4 w-4 accent-black cursor-pointer focus:ring-black' checked={selected.includes(opt)} onChange={() => toggle(opt)} />
-                            <span className="ml-1">{opt}</span>
-                        </label>
-                    ))}
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
+export interface FilterState {
+    dateRange: DateRange
+    startDate?: Date
+    endDate?: Date
+    transactionTypes: string[]
+    transactionStatus: string[]
+}
+interface FilterProps {
+    open: boolean
+    onClose: () => void
+    onApplyFilter: (filters: FilterState) => void
+    currentFilters: FilterState
 }
 
-const Filter: React.FC<Props> = ({ open, onClose }) => {
+const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFilters }) => {
+
+    const [filters, setFilters] = useState<FilterState>(currentFilters)
+    const dateRangeOptions: { label: string; value: DateRange }[] = [
+        { label: 'Today', value: 'today' },
+        { label: 'Last 7 days', value: 'last7days' },
+        { label: 'This month', value: 'thisMonth' },
+        { label: 'Last 3 months', value: 'last3months' },
+        { label: 'This Year', value: 'thisYear' },
+        { label: 'Last Year', value: 'lastYear' },
+        { label: 'All time', value: 'allTime' }
+    ]
+
+    const handleDateRangeSelect = (range: DateRange) => {
+        setFilters(prev => ({ ...prev, dateRange: range }))
+    }
+
+    const handleTypeSelection = (types: string[]) => {
+        setFilters(prev => ({ ...prev, transactionTypes: types }))
+    }
+
+    const handleStatusSelection = (status: string[]) => {
+        setFilters(prev => ({ ...prev, transactionStatus: status }))
+    }
+
+    const handleClear = () => {
+        const clearedFilters: FilterState = {
+            dateRange: 'allTime',
+            transactionTypes: [],
+            transactionStatus: []
+        }
+        setFilters(clearedFilters)
+    }
+
+    const handleApply = () => {
+        onApplyFilter(filters)
+        onClose()
+    }
+
+    const hasFilters = filters.transactionTypes.length > 0 || filters.transactionStatus.length > 0 || filters.dateRange !== 'allTime'
+
     return (
         <div aria-hidden={!open} className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}>
             <div
@@ -67,13 +86,19 @@ const Filter: React.FC<Props> = ({ open, onClose }) => {
                 </div>
 
                 <div className="flex gap-2 w-full overflow-x-scroll scrollbar-hide mb-10">
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full bg-black border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-white hover:bg-gray-300">Today</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">Last 7 days</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">This month</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">Last 3 months</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">This Year</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">Last Year</button>
-                    <button className="px-3 py-1 flex-shrink-0 rounded-full border border-grayOff text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] text-dark hover:bg-gray-300">All time</button>
+                    {dateRangeOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            onClick={() => handleDateRangeSelect(option.value)}
+                            className={`px-3 py-1 flex-shrink-0 rounded-full text-sm !leading-[160%] tracking-[-0.4px] font-[DegularMedium] transition-colors ${
+                                filters.dateRange === option.value
+                                    ? 'bg-black text-white'
+                                    : 'border border-grayOff text-dark hover:bg-grayOff'
+                            }`}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
                 </div>
 
                 <div className="space-y-4">
@@ -87,19 +112,42 @@ const Filter: React.FC<Props> = ({ open, onClose }) => {
 
                     <div>
                         <div className="!leading-[160%] tracking-[-0.4px] text-dark font-semibold mb-2">Transaction Type</div>
-                        <MultiSelectPopover options={TX_TYPES} placeholder="Select types" />
+                        <MultiSelectPopover 
+                            options={TX_TYPES} 
+                            placeholder="Select types"
+                            selected={filters.transactionTypes}
+                            onSelectionChange={handleTypeSelection}
+                        />
                     </div>
 
                     <div>
                         <div className="!leading-[160%] tracking-[-0.4px] text-dark font-semibold mb-2">Transaction Status</div>
-                        <MultiSelectPopover options={TX_STATUS} placeholder="Select status" />
+                        <MultiSelectPopover 
+                            options={TX_STATUS} 
+                            placeholder="Select status"
+                            selected={filters.transactionStatus}
+                            onSelectionChange={handleStatusSelection}
+                        />
                     </div>
                 </div>
 
                 <div className="absolute left-0 right-0 bottom-6 px-6">
                     <div className="flex items-center justify-between gap-4">
-                        <button className="flex-1 py-3 rounded-full border border-border">Clear</button>
-                        <button className="flex-1 py-3 rounded-full bg-black text-white disabled:opacity-50" disabled>
+                        <button 
+                            onClick={handleClear}
+                            className="flex-1 py-3 rounded-full border border-border hover:bg-grayOff transition-colors"
+                        >
+                            Clear
+                        </button>
+                        <button 
+                            onClick={handleApply}
+                            className={`flex-1 py-3 rounded-full transition-colors ${
+                                hasFilters 
+                                    ? 'bg-black text-white hover:bg-gray-800' 
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            disabled={!hasFilters}
+                        >
                             Apply
                         </button>
                     </div>

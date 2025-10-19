@@ -1,12 +1,14 @@
 import { PiDownloadSimple } from "react-icons/pi";
 import { LuChevronDown } from "react-icons/lu";
 import { BsArrowDownLeft, BsArrowUpRight } from "react-icons/bs";
-import Filter from './transaction-filter/Filter'
+import Filter, { type FilterState } from './transaction-filter/Filter'
 import { useEffect, useState } from 'react'
 import { RiFileList3Fill } from "react-icons/ri";
 import requestClient from "../lib/httpRequest";
 import type { TransactionType } from "../constant/global";
 import { formatDate } from "../lib/utils";
+import { filterTransactions } from "../lib/filterUtils";
+import { TxDescription } from "./TransactionDescription";
 
 const IconCircle: React.FC<{ type: 'deposit' | 'withdrawal' }> = ({ type }) => {
     const depositBg = 'bg-[#E3FCF2] text-[#075132]'
@@ -22,58 +24,48 @@ const Transaction: React.FC = () => {
     
     const [open, setOpen] = useState(false)
     const [transactions, setTransactions] = useState<TransactionType[]>([]);
+    const [filteredTransactions, setFilteredTransactions] = useState<TransactionType[]>([]);
+    const [currentFilters, setCurrentFilters] = useState<FilterState>({
+        dateRange: 'allTime',
+        transactionTypes: [],
+        transactionStatus: []
+    });
 
     const fetchingTransactions = async () => {
         try {
             const response = await requestClient().get('/transactions');
             setTransactions(response.data);
+            setFilteredTransactions(response.data);
         } catch (error) {
             console.error('Error fetching transactions:', error);
         }
     }
 
+    const handleApplyFilter = (filters: FilterState) => {
+        setCurrentFilters(filters);
+        const filtered = filterTransactions(transactions, filters);
+        setFilteredTransactions(filtered);
+    }
+
+
     useEffect(() => {
         fetchingTransactions();
     }, []);
 
-    const TxDescription = (transaction: TransactionType) => {
-        switch (transaction.type) {
-            case 'deposit':
-                return (
-                <div>
-                    <p className="font-medium !leading-[24px] tracking-[-0.2px] text-dark">
-                        {transaction?.metadata?.product_name || "Product Name"}
-                    </p>
-                    <p className="mt-2 font-medium !leading-[16px] tracking-[-0.2px] text-gray text-sm">
-                        {transaction?.metadata?.name}
-                    </p>
-                </div> 
-                );
-            case 'withdrawal':
-                return (
-                <div>
-                    <p className="font-medium !leading-[24px] tracking-[-0.2px] text-dark">
-                        Cash Withdrawal
-                    </p>
-                    {transaction.status && (
-                        <div className={`font-medium !leading-[16px] tracking-[-0.2px] text-sm mt-2 ${transaction.status === 'successful' ? 'text-[#0EA163]' : 'text-[#A77A07]'}`}>
-                            {transaction.status === 'successful' ? 'Successful' : 'Pending'}
-                        </div>
-                    )}
-                </div>
-                );
-            default:
-                return 'Unknown';
+    useEffect(() => {
+        // Apply current filters when transactions are updated
+        if (transactions.length > 0) {
+            const filtered = filterTransactions(transactions, currentFilters);
+            setFilteredTransactions(filtered);
         }
-    };
+    }, [transactions, currentFilters]);
 
-    console.log('Transactions:', transactions);
 
     return (
-        <div className="mx-auto max-w-6xl mt-16 p-6 bg-background rounded-lg">
+        <div className="mx-auto max-w-6xl mt-16 p-6 bg-background rounded-lg">            
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h3 className="text-2xl font-bold !leading-[32px] tracking-[-0.6px]">24 Transactions</h3>
+                    <h3 className="text-2xl font-bold !leading-[32px] tracking-[-0.6px]">{filteredTransactions.length} Transactions</h3>
                     <p className="text-sm text-gray !leading-[16px] tracking-[-0.2px] font-medium">Your transactions for the last 7 days</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -85,14 +77,10 @@ const Transaction: React.FC = () => {
                     </button>
                 </div>
             </div>
-            <Filter open={open} onClose={() => setOpen(false)} />
-
-
-            <div className="border-t border-border" />
-
+            <div className="border-t border-border" />            
             <ul className="mt-6 space-y-5">
-                {transactions.length > 0 ?
-                    transactions?.map((tx, index) => (
+                {filteredTransactions.length > 0 ?
+                    filteredTransactions?.map((tx, index) => (
                     <li key={index} className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <IconCircle type={tx.type} />
@@ -100,23 +88,36 @@ const Transaction: React.FC = () => {
                         </div>
 
                         <div className="text-right">
-                            <div className="font-[DegularBold] !leading-[150%] tracking-[-0.4px] text-dark">USD {tx.amount}</div>
-                            <div className="font-medium !leading-[16px] tracking-[-0.2px] text-gray text-sm">{formatDate(tx.date)}</div>
+                            <p className="font-[DegularBold] !leading-[150%] tracking-[-0.4px] text-dark">USD {tx.amount}</p>
+                            <p className="font-medium !leading-[16px] tracking-[-0.2px] text-gray text-sm">{formatDate(tx.date)}</p>
                         </div>
                     </li>
                 )):
                     <div className="flex items-center justify-center my-16">
                         <div className="max-w-md">
-                            <div className="h-12 w-12 bg-grayOff rounded-xl flex items-center justify-center"><RiFileList3Fill className="w-7 h-7" /></div>
+                            <div className="h-12 w-12 bg-grayOff rounded-xl flex items-center justify-center">
+                                <RiFileList3Fill className="w-7 h-7" />
+                            </div>
                             <h1 className="font-bold text-[28px] !leading-[40px] tracking-[-0.6px] mt-6 text-dark">No matching transaction found for the selected filter</h1>
                             <p className="text-gray leading-[24px] tracking-[-0.2px] font-medium my-4">Change your filters to see more results, or add a new product.</p>
-                            <button onClick={() => setOpen(true)} className="px-8 py-2 font-medium rounded-full bg-grayOff leading-[24px] tracking-[-0.4px] text-dark">
+                            <button 
+                            onClick={() => setOpen(true)} 
+                            className="px-8 py-2 font-medium rounded-full bg-grayOff leading-[24px] tracking-[-0.4px] text-dark">
                             Clear Filter
-                        </button>
+                            </button>
                         </div>
                     </div>
                 }
             </ul>
+
+            {/* ---- Filter Wrapper ---- */}
+            <Filter 
+                open={open} 
+                onClose={() => setOpen(false)} 
+                onApplyFilter={handleApplyFilter}
+                currentFilters={currentFilters}
+            />
+
         </div>
     )
 }
