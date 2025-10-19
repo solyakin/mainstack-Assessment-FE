@@ -2,18 +2,7 @@ import React, { useState } from 'react'
 import { LuX } from 'react-icons/lu'
 import { CalendarDropdown } from './Calender'
 import { MultiSelectPopover } from '../MultiSelectPopover'
-
-const TX_TYPES = [
-    'Store Transactions',
-    'Get Tipped',
-    'Withdrawals',
-    'Chargebacks',
-    'Cashbacks',
-    'Refer & Earn',
-]
-const TX_STATUS = ['Successful', 'Pending', 'Failed']
-type DateRange = 'today' | 'last7days' | 'thisMonth' | 'last3months' | 'thisYear' | 'lastYear' | 'allTime' | 'custom'
-
+import { dateRangeOptions, TX_STATUS, TX_TYPES, type DateRange } from '../../constant/data'
 export interface FilterState {
     dateRange: DateRange
     startDate?: Date
@@ -31,15 +20,6 @@ interface FilterProps {
 const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFilters }) => {
 
     const [filters, setFilters] = useState<FilterState>(currentFilters)
-    const dateRangeOptions: { label: string; value: DateRange }[] = [
-        { label: 'Today', value: 'today' },
-        { label: 'Last 7 days', value: 'last7days' },
-        { label: 'This month', value: 'thisMonth' },
-        { label: 'Last 3 months', value: 'last3months' },
-        { label: 'This Year', value: 'thisYear' },
-        { label: 'Last Year', value: 'lastYear' },
-        { label: 'All time', value: 'allTime' }
-    ]
 
     const handleDateRangeSelect = (range: DateRange) => {
         setFilters(prev => ({ ...prev, dateRange: range }))
@@ -68,7 +48,7 @@ const Filter: React.FC<FilterProps> = ({ open, onClose, onApplyFilter, currentFi
     }
 
     const hasFilters = filters.transactionTypes.length > 0 || filters.transactionStatus.length > 0 || filters.dateRange !== 'allTime'
-
+    console.log('Current Filters in Filter Component:', filters);
     return (
         <div aria-hidden={!open} className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}>
             <div
