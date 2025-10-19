@@ -4,7 +4,6 @@ import { BsArrowDownLeft, BsArrowUpRight } from "react-icons/bs";
 import Filter, { type FilterState } from './transaction-filter/Filter'
 import { useEffect, useState } from 'react'
 import { RiFileList3Fill } from "react-icons/ri";
-import requestClient from "../lib/httpRequest";
 import type { TransactionType } from "../constant/global";
 import { formatDate } from "../lib/utils";
 import { filterTransactions } from "../lib/filterUtils";
@@ -20,37 +19,21 @@ const IconCircle: React.FC<{ type: 'deposit' | 'withdrawal' }> = ({ type }) => {
     )
 }
 
-const Transaction: React.FC = () => {
-    
-    const [open, setOpen] = useState(false)
-    const [transactions, setTransactions] = useState<TransactionType[]>([]);
-    const [filteredTransactions, setFilteredTransactions] = useState<TransactionType[]>([]);
+const Transaction: React.FC<{ transactions: TransactionType[] }> = ({ transactions }) => {
+
+    const [open, setOpen] = useState(false);
     const [currentFilters, setCurrentFilters] = useState<FilterState>({
         dateRange: 'allTime',
         transactionTypes: [],
         transactionStatus: []
     });
-
-    const fetchingTransactions = async () => {
-        try {
-            const response = await requestClient().get('/transactions');
-            setTransactions(response.data);
-            setFilteredTransactions(response.data);
-        } catch (error) {
-            console.error('Error fetching transactions:', error);
-        }
-    }
+    const [filteredTransactions, setFilteredTransactions] = useState<TransactionType[]>([]);
 
     const handleApplyFilter = (filters: FilterState) => {
         setCurrentFilters(filters);
         const filtered = filterTransactions(transactions, filters);
         setFilteredTransactions(filtered);
     }
-
-
-    useEffect(() => {
-        fetchingTransactions();
-    }, []);
 
     useEffect(() => {
         // Apply current filters when transactions are updated
@@ -65,8 +48,12 @@ const Transaction: React.FC = () => {
         <div className="mx-auto max-w-6xl mt-16 p-6 bg-background rounded-lg">            
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h3 className="text-2xl font-bold !leading-[32px] tracking-[-0.6px]">{filteredTransactions.length} Transactions</h3>
-                    <p className="text-sm text-gray !leading-[16px] tracking-[-0.2px] font-medium">Your transactions for the last 7 days</p>
+                    <h3 className="text-2xl font-bold !leading-[32px] tracking-[-0.6px]">
+                        {filteredTransactions.length} Transactions
+                    </h3>
+                    <p className="text-sm text-gray !leading-[16px] tracking-[-0.2px] font-medium">
+                        Your transactions for the last 7 days
+                    </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button onClick={() => setOpen(true)} className="px-4 py-2 rounded-full bg-grayOff text-dark flex items-center gap-2">

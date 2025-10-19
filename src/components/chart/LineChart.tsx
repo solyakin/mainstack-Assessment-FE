@@ -1,22 +1,23 @@
 import { CartesianGrid, Line, LineChart } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "../ui/chart"
-
+import { 
+    ChartContainer, 
+    ChartTooltip, 
+    ChartTooltipContent, 
+    type ChartConfig 
+} from "../ui/chart"
 import {
     CardContent,
     CardHeader,
     CardTitle,
 } from "../ui/card"
+import { 
+    formatDateForDisplay, 
+    getChatRecords, 
+    getDateRange 
+} from "../../lib/utils"
+import type { TransactionType } from "../../constant/global";
 
 export const description = "A line chart"
-
-const chartData = [
-    { month: "January", desktop: 0 },
-    { month: "February", desktop: 100 },
-    { month: "March", desktop: 237 },
-    { month: "April", desktop: 73 },
-    { month: "May", desktop: 209 },
-    { month: "June", desktop: 214 },
-]
 
 const chartConfig = {
     desktop: {
@@ -25,7 +26,12 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function ChartLineDefault({balance}: {balance?: number}) {
+export function ChartLineDefault(
+    {balance, transactions}: {balance?: number, transactions: TransactionType[]}
+) {
+    const chartData = getChatRecords(transactions);
+    const { minDate, maxDate } = getDateRange(chartData);
+
     return (
         <div className="">
             <CardHeader>
@@ -41,10 +47,9 @@ export function ChartLineDefault({balance}: {balance?: number}) {
                     >
                         Withdraw
                     </button>
-                </div>
-            </CardHeader>
+                </div>            </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig}>
+                <ChartContainer config={chartConfig} className="h-[250px] w-full">
                     <LineChart
                         accessibilityLayer
                         data={chartData}
@@ -59,7 +64,7 @@ export function ChartLineDefault({balance}: {balance?: number}) {
                             content={<ChartTooltipContent hideLabel />}
                         />
                         <Line
-                            dataKey="desktop"
+                            dataKey="amount"
                             type="natural"
                             stroke="var(--color-desktop)"
                             strokeWidth={2}
@@ -74,8 +79,8 @@ export function ChartLineDefault({balance}: {balance?: number}) {
             <div className="rounded-full h-1 w-1 bg-gray"></div>
             </div>
             <div className="flex items-center justify-between px-7">
-                <p className="text-xs text-gray">April 1, 2025</p>
-                <p className="text-xs text-gray">April 30, 2025</p>
+                <p className="text-xs text-gray">{formatDateForDisplay(minDate)}</p>
+                <p className="text-xs text-gray">{formatDateForDisplay(maxDate)}</p>
             </div>
         </div>
     )

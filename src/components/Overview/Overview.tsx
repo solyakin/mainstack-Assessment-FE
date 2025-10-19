@@ -1,31 +1,20 @@
-import { useEffect, useState } from 'react';
+
 import { ChartLineDefault } from '../chart/LineChart'
 import { ImInfo } from "react-icons/im";
-import requestClient from '../../lib/httpRequest';
-import type { WalletDataType } from '../../constant/global';
+import type { TransactionType, WalletDataType } from '../../constant/global';
 
-const Overview = () => {
+const Overview: React.FC<{ walletData: WalletDataType | null, transactions: TransactionType[] }> = ({ walletData, transactions }) => {
 
-    const [walletData, setWalletData] = useState<WalletDataType>();
-    const fetchingWalletData = async () => {
-        try {
-            const response = await requestClient().get('/wallet');
-            setWalletData(response.data);
-        } catch (error) {
-            console.error('Error fetching wallet data:', error);
-        }
-    };
-    useEffect(() => {
-        fetchingWalletData();
-    }, []);
-    
     return (
-        <div className="grid grid-cols-3 lg:grid-col-3 max-w-6xl m-auto mt-14">
+        <div className="grid grid-cols-3 lg:grid-col- lg:gap-10 max-w-6xl m-auto mt-14">
             <div className="cols-span-3 lg:col-span-2 w-full">
-                <ChartLineDefault balance={walletData?.balance} />
+                <ChartLineDefault 
+                balance={walletData?.balance} 
+                transactions={transactions}
+                />
             </div>
             <div className="cols-span-3 lg:col-span-1 w-full">
-                <div className="space-y-6 p-6 w-full">
+                <div className="space-y-9 p-6 w-full">
                     <div className="flex items-center justify-between w-full">
                         <div className="w-full">
                             <div className="text-sm text-gray flex items-center justify-between">
